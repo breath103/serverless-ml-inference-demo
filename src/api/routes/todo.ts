@@ -16,7 +16,7 @@ async function findTodoList(id: string) {
 }
 
 export const route = new Namespace(
-  "/todo-lists", {}, {
+  "/ml-inference", {}, {
     children: [
       PresenterRouteFactory.GET(
         "", {
@@ -34,73 +34,5 @@ export const route = new Namespace(
             }
           };
         }),
-
-      PresenterRouteFactory.POST(
-        "", {
-          desc: "create new todo lists", operationId: "createTodoList"
-        }, {
-          // You can reuse Entity as part of type like this. as long it's typebox object
-          todoList: Parameter.Body(Type.Object({
-            name: Type.String({ minLength: 1, maxLength: 16 }),
-          })),
-        }, Presenters.TodoListShow, async function() {
-          const record = new TodoList();
-          record.id = Math.random().toString(); // just random id
-          record.name = this.params.todoList.name;
-          record.numberOfItems = 0;
-          record.numberOfCompletedItems = 0;
-          await record.save();
-          return record;
-        }),
-
-      new Namespace(
-        "/:listId", {
-          listId: Type.String()
-        }, {
-          children: [
-            PresenterRouteFactory.GET(
-              "", {
-                operationId: "describeTodoList"
-              }, {}, Presenters.TodoListShow, async function() {
-                const todoList = await findTodoList(this.params.listId);
-                return todoList;
-              }),
-
-            new Namespace(
-              "/items", {}, {
-                children: [
-                  PresenterRouteFactory.POST(
-                    "", {
-                      desc: "create new todo item", operationId: "createTodoItem"
-                    }, {
-                      // You can reuse Entity as part of type like this. as long it's typebox object
-                      todoItem: Parameter.Body(Type.Object({
-                        name: Type.String({ minLength: 1, maxLength: 16 }),
-                      })),
-                    }, Presenters.TodoItemShow, async function() {
-                      const record = new TodoItem();
-                      record.listId = this.params.listId;
-                      record.itemId = Math.random().toString(); // just random id
-                      record.name = this.params.todoItem.name;
-                      record.createdAt = Date.now() / 1000;
-                      record.completedAt = null;
-                      await record.save();
-                      return record;
-                    }),
-
-                  PresenterRouteFactory.GET(
-                    "", {
-                      desc: "list todo item within todoList", operationId: "listTodoItems"
-                    }, {}, Presenters.TodoItemList, async function() {
-                      const { records } = await TodoItem.primaryKey.query({ hash: this.params.listId });
-                      return {
-                        data: records,
-                        paging: {}
-                      };
-                    }),
-                ]
-              })
-          ]
-        })
     ]
   });
