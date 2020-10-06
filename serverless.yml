@@ -21,7 +21,7 @@ package:
 functions:
   api:
     timeout: 30
-    memorySize: 256
+    memorySize: 3000
     handler: api.handler
     events:
       - http:

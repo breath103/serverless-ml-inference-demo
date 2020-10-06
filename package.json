@@ -13,7 +13,7 @@
     "build": "npm run build:tsc",
     "postbuild": "cd src && find . -name '*.json' -type f -exec cp {} ../dst/{} \\; && cd ..",
     "prepack": "rm -f dst.zip",
-    "pack": "cp package.json package-lock.json dst/ && cd dst && npm ci --production && npm ls && find . -name \"*.d.ts\" | xargs rm && find . -name \"*.js.map\" | xargs rm && rm -Rf ./node_modules/@types && zip -rqy ../dst.zip . && cd ..",
+    "pack": "cp package.json package-lock.json dst/ && cd dst && npm ci --arch=x64 --platform=linux --production && find . -name \"*.d.ts\" | xargs rm && find . -name \"*.js.map\" | xargs rm && rm -Rf ./node_modules/@types && zip -rqy ../dst.zip . && cd ..",
     "postpack": "node -e \"require('fs').statSync('./dst.zip').size > 1024 * 1024 * 50 && [console.log('artifact has to be smaller than 50MB'), process.exit(1)]\"",
     "pretest": "npm run build:tsc -- -p ./tsconfig-test.json",
     "test": "mocha --exit -t 20000 dst/**/__test__/**/*.js",
@@ -51,7 +51,15 @@
     "@serverless-seoul/corgi": "^4.0.0",
     "@serverless-seoul/dynamorm": "^2.11.0",
     "@serverless-seoul/typebox": "^1.0.4",
+    "@tensorflow-models/body-pix": "^2.0.5",
     "@tensorflow-models/mobilenet": "^2.0.4",
-    "@tensorflow/tfjs-node": "^2.4.0"
+    "@tensorflow/tfjs": "^1.7.4",
+    "@tensorflow/tfjs-core": "^1.7.4",
+    "@tensorflow/tfjs-converter": "^1.7.4",
+    "@tensorflow/tfjs-backend-wasm": "^1.7.4",
+    "@types/sharp": "^0.26.0",
+    "@types/webgl2": "0.0.5",
+    "axios": "^0.20.0",
+    "sharp": "^0.26.1"
   }
 }

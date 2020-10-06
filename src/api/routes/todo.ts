@@ -1,38 +1,45 @@
-import { Namespace, Parameter, PresenterRouteFactory, StandardError } from "@serverless-seoul/corgi";
+import { Namespace, Parameter, Route } from "@serverless-seoul/corgi";
 import { Type } from "@serverless-seoul/typebox";
 
-// Models
-import { TodoItem, TodoList } from "../../models";
+const tfjs = require("@tensorflow/tfjs");
+// const BodyPixNet = require("@tensorflow-models/body-pix");
+const MobileNet = require("@tensorflow-models/mobilenet");
+require('@tensorflow/tfjs-backend-wasm');
 
-// Presenters
-import * as Presenters from "../presenters";
+import Axios from "axios";
+import * as sharp from "sharp";
 
-async function findTodoList(id: string) {
-  const todoList = await TodoList.primaryKey.get(id);
-  if (!todoList) {
-    throw new StandardError(404, { code: "NOT_FOUND", message: `List with id(${id}) not exists` });
-  }
-  return todoList;
-}
+// const modelPromise = BodyPixNet.load({
+//   architecture: "ResNet50",
+//   outputStride: 16,
+//   quantBytes: 2,
+// });
+const mobileNetModelPromise = MobileNet.load();
 
 export const route = new Namespace(
   "/ml-inference", {}, {
     children: [
-      PresenterRouteFactory.GET(
+      Route.GET(
         "", {
           desc: "list all todo lists", operationId: "listTodoLists"
         }, {
-          after: Parameter.Query(Type.Optional(Type.String())),
-        }, Presenters.TodoListList, async function() {
-          const exclusiveStartKey = this.params.after ? JSON.parse(this.params.after) : undefined;
-          const { records, lastEvaluatedKey } = await TodoList.primaryKey.scan({ limit: 10, exclusiveStartKey });
+          url: Parameter.Query(Type.String()),
+        }, async function() {
+          const url = this.params.url;
 
-          return {
-            data: records,
-            paging: {
-              after: lastEvaluatedKey && JSON.stringify(lastEvaluatedKey),
-            }
-          };
+          console.log(await tfjs.setBackend("wasm"));
+
+          const imgBuffer = (await Axios.get(url, { responseType: "arraybuffer" })).data;
+          const sharpImg = sharp(imgBuffer);
+          const imgSize = await sharpImg.metadata();
+
+          const rawBuffer = await sharpImg.raw().toBuffer();
+          const imgTensor = tfjs.tensor3d(
+            Uint8Array.from(rawBuffer), [imgSize.height!, imgSize.width!, 3],
+          );
+          const res = await (await mobileNetModelPromise).classify(imgTensor, 4);
+
+          return this.json({ data: res }, 200);
         }),
     ]
   });
